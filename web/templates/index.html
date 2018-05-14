@@ -1,0 +1,21 @@
+{{define "index"}}
+{{template "header.html"}}
+<div class="container-fluid">
+    <div class="row justify-content-center vertical-center">
+        <div class="col-5 text-center">
+            <img class="search-logo" src="/static/img/protocols.png">
+            <form>
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <i class="input-group-text fas fa-search pt-6"></i>
+                    </div>
+                    <input type="text" class="form-control" aria-label="Search" aria-describedby="basic-addon1">
+                </div>
+                <input type="submit" value="Go">
+            </form>
+        </div>
+    </div>
+</div>
+
+{{template "footer.html"}}
+{{end}}

@@ -1,0 +1,22 @@
+{
+  "name": "ipfsindex",
+  "version": "1.0.0",
+  "description": "distributed IPFS index",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cpacia/ipfsindex.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cpacia/ipfsindex/issues"
+  },
+  "homepage": "https://github.com/cpacia/ipfsindex#readme",
+  "dependencies": {
+    "bootstrap": "^4.1.1"
+  }
+}

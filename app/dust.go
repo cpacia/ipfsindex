@@ -8,5 +8,5 @@ func MinimumInputSize(w *bitcoincash.SPVWallet) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return uint64(((float64(1) / 100) / rate) * 100000000), nil
+	return uint64(((float64(2) / 100) / rate) * 100000000), nil
 }

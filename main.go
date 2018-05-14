@@ -4,13 +4,13 @@ import (
 	"errors"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/cpacia/ipfsindex/app"
+	"github.com/cpacia/ipfsindex/db"
 	"github.com/cpacia/ipfsindex/web"
 	"github.com/jessevdk/go-flags"
 	"github.com/op/go-logging"
 	"net"
 	"os"
 	"os/signal"
-	"github.com/cpacia/ipfsindex/db"
 )
 
 var parser = flags.NewParser(nil, flags.Default)

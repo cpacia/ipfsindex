@@ -216,4 +216,3 @@ func fromBigEndian(hash []byte) (*chainhash.Hash, error) {
 	}
 	return chainhash.NewHash(hash)
 }
-

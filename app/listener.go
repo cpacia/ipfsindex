@@ -6,10 +6,10 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
 	"github.com/cpacia/BitcoinCash-Wallet"
-	"sync"
-	"time"
 	"github.com/cpacia/ipfsindex/db"
 	"github.com/jinzhu/gorm"
+	"sync"
+	"time"
 )
 
 type UserEntry struct {
@@ -26,7 +26,6 @@ type TransactionListener struct {
 	wallet      *bitcoincash.SPVWallet
 	db          *db.Database
 	lock        sync.RWMutex
-
 }
 
 func NewTransactionListener(wallet *bitcoincash.SPVWallet, db *db.Database) *TransactionListener {
@@ -60,17 +59,18 @@ func (l *TransactionListener) ListenBitcoinCash(tx wallet.TransactionCallback) {
 				if tx.Height > 0 {
 					ts = tx.BlockTime
 				}
-				if l.db.Where("txid = ?", chainHash.String()).First(&db.FileDescriptor{}).RecordNotFound() {
+				fd := &db.FileDescriptor{}
+				if l.db.Where("txid = ?", chainHash.String()).First(fd).RecordNotFound() {
 					l.db.Save(&db.FileDescriptor{
-						Txid: chainHash.String(),
+						Txid:        chainHash.String(),
 						Description: parsedScript.(*AddFileScript).Description,
-						Timestamp: ts,
-						Height: uint32(tx.Height),
-						Cid: parsedScript.(*AddFileScript).Cid.String(),
+						Timestamp:   ts,
+						Height:      uint32(tx.Height),
+						Cid:         parsedScript.(*AddFileScript).Cid.String(),
 					})
 					log.Debugf("Received new file descriptor, tx: %s", chainHash.String())
 				} else {
-					l.db.Updates(&db.FileDescriptor{Height: uint32(tx.Height), Timestamp: ts})
+					l.db.Model(fd).Updates(&db.FileDescriptor{Height: uint32(tx.Height), Timestamp: ts})
 					log.Debugf("Updated file descriptor with confirmation, tx: %s", chainHash.String())
 				}
 			} else if parsedScript.Command() == Vote {
@@ -81,19 +81,19 @@ func (l *TransactionListener) ListenBitcoinCash(tx wallet.TransactionCallback) {
 				v := &db.Vote{}
 				if l.db.Where("txid = ?", chainHash.String()).First(v).RecordNotFound() {
 					l.db.Save(&db.Vote{
-						FDTxid: parsedScript.(*VoteScript).Txid.String(),
-						Txid: chainHash.String(),
-						Comment: parsedScript.(*VoteScript).Comment,
+						FDTxid:    parsedScript.(*VoteScript).Txid.String(),
+						Txid:      chainHash.String(),
+						Comment:   parsedScript.(*VoteScript).Comment,
 						Timestamp: ts,
-						Height: uint32(tx.Height),
-						Upvote: parsedScript.(*VoteScript).Upvote,
+						Height:    uint32(tx.Height),
+						Upvote:    parsedScript.(*VoteScript).Upvote,
 					})
-					if tx.Height> 0 {
+					if tx.Height > 0 {
 						l.updateVoteColumns(parsedScript.(*VoteScript).Upvote, parsedScript.(*VoteScript).Txid.String())
 					}
 					log.Debugf("Received new vote, tx: %s", chainHash.String())
 				} else {
-					l.db.Updates(&db.Vote{Height: uint32(tx.Height), Timestamp: ts})
+					l.db.Model(v).Updates(&db.Vote{Height: uint32(tx.Height), Timestamp: ts})
 					l.updateVoteColumns(v.Upvote, v.FDTxid)
 					log.Debugf("Updated vote with confirmation, tx: %s", chainHash.String())
 				}
@@ -151,7 +151,7 @@ func (l *TransactionListener) updateVoteColumns(upvote bool, txid string) {
 		column = "upvotes"
 		sign = "+"
 	}
-	l.db.Model(&db.FileDescriptor{}).Where(`txid="` + txid + `"`).UpdateColumn("upvotes", gorm.Expr(column+sign+"1")).UpdateColumn("net", gorm.Expr("net"+sign+"1"))
+	l.db.Model(&db.FileDescriptor{}).Where(`txid="`+txid+`"`).UpdateColumn("upvotes", gorm.Expr(column+sign+"1")).UpdateColumn("net", gorm.Expr("net"+sign+"1"))
 }
 
 func (l *TransactionListener) NewEntry(addr btcutil.Address, entry UserEntry) {

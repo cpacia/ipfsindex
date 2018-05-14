@@ -6,17 +6,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/OpenBazaar/wallet-interface"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcutil"
 	"github.com/cpacia/BitcoinCash-Wallet"
 	"github.com/cpacia/ipfsindex/app"
+	"github.com/cpacia/ipfsindex/db"
 	"github.com/gorilla/mux"
 	"github.com/op/go-logging"
 	"gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	"html/template"
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 	"time"
-	"github.com/cpacia/ipfsindex/db"
 )
 
 var log = logging.MustGetLogger("web")
@@ -29,6 +33,12 @@ type Server struct {
 	port        int
 	listener    *app.TransactionListener
 	db          *db.Database
+	siteData    *SiteData
+}
+
+type SiteData struct {
+	Title         string
+	AddressPrefix string
 }
 
 func NewServer(wallet *bitcoincash.SPVWallet, listener *app.TransactionListener, db *db.Database, port int) (*Server, error) {
@@ -37,24 +47,35 @@ func NewServer(wallet *bitcoincash.SPVWallet, listener *app.TransactionListener,
 	if err != nil {
 		return nil, err
 	}
+	var addrPrefix = "bitcoincash:"
+	if wallet.Params().Name == chaincfg.TestNet3Params.Name {
+		addrPrefix = "bchtest:"
+	} else if wallet.Params().Name == chaincfg.RegressionNetParams.Name {
+		addrPrefix = "bchreg:"
+	}
 	s := &Server{
 		wallet:      wallet,
-		fileServer:  http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))),
+		fileServer:  http.StripPrefix("/static/", http.FileServer(http.Dir("./web/static"))),
 		etagFactory: ef,
 		port:        port,
 		listener:    listener,
 		router:      router,
 		db:          db,
+		siteData: &SiteData{
+			Title:         "Decentralized File Index for IPFS",
+			AddressPrefix: addrPrefix,
+		},
 	}
 	router.PathPrefix("/static").Methods("GET").Handler(http.HandlerFunc(s.serveFiles))
 	router.HandleFunc("/addfile", s.submitAddFile).Methods("POST")
+	router.HandleFunc("/validatecid", s.submitValidateCid).Methods("POST")
 	router.HandleFunc("/vote", s.submitVote).Methods("POST")
 	router.HandleFunc("/", s.renderIndex).Methods("GET")
 	return s, nil
 }
 
 func (s *Server) Start() {
-	go s.wallet.Start()
+	//go s.wallet.Start()
 	http.ListenAndServe(":"+strconv.Itoa(s.port), s.router)
 }
 
@@ -79,7 +100,15 @@ func (s *Server) serveFiles(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) renderIndex(w http.ResponseWriter, r *http.Request) {
-
+	templates, err := template.ParseFiles(path.Join("web", "templates", "index.html"), path.Join("web", "templates", "header.html"), path.Join("web", "templates", "footer.html"))
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	templates.Lookup("header").ExecuteTemplate(w, "header", s.siteData)
+	templates.Lookup("index").ExecuteTemplate(w, "index", nil)
+	templates.Lookup("footer").ExecuteTemplate(w, "footer", nil)
 }
 
 func (s *Server) submitAddFile(w http.ResponseWriter, r *http.Request) {
@@ -117,7 +146,7 @@ func (s *Server) submitAddFile(w http.ResponseWriter, r *http.Request) {
 		AmountToPay: amount,
 	}
 	s.listener.NewEntry(addr, entry)
-	fmt.Fprintf(w, `{"paymentAddress": "%s", "amountToPay": %d}`, addr.String(), amount)
+	fmt.Fprintf(w, `{"paymentAddress": "%s", "amountToPay": %f}`, addr.String(), btcutil.Amount(amount).ToBTC())
 	//TODO: map websocket
 }
 
@@ -163,6 +192,23 @@ func (s *Server) submitVote(w http.ResponseWriter, r *http.Request) {
 		AmountToPay: amount,
 	}
 	s.listener.NewEntry(addr, entry)
-	fmt.Fprintf(w, `{"paymentAddress": "%s", "amountToPay": %d}`, addr.String(), amount)
+	fmt.Fprintf(w, `{"paymentAddress": "%s", "amountToPay": %f}`, addr.String(), btcutil.Amount(amount).ToBTC())
 	//TODO: map websocket
+}
+
+func (s *Server) submitValidateCid(w http.ResponseWriter, r *http.Request) {
+	type Req struct {
+		Cid string `json:"cid"`
+	}
+	req := new(Req)
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	id, err := cid.Decode(req.Cid)
+	if err != nil {
+		fmt.Fprint(w, `{"valid": false}`)
+	} else {
+		fmt.Fprintf(w, `{"valid": true, "length": %d}`, len(id.Bytes()))
+	}
 }
