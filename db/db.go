@@ -11,6 +11,7 @@ type FileDescriptor struct {
 	Txid        string    `json:"txid" gorm:"index;unique;not null"`
 	Cid         string    `json:"cid"`
 	Description string    `json:"description"`
+	Category    string    `json:"category"`
 	Timestamp   time.Time `json:"timestamp"`
 	Upvotes     int64     `json:"upvotes"`
 	Downvotes   int64     `json:"downvotes"`

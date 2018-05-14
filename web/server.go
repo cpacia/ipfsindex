@@ -87,8 +87,8 @@ func NewServer(conf Config) (*Server, error) {
 		siteData: &SiteData{
 			Title:         "Decentralized File Index for IPFS",
 			AddressPrefix: addrPrefix,
-			Hostname: conf.Hostname,
-			Port: conf.Port,
+			Hostname:      conf.Hostname,
+			Port:          conf.Port,
 		},
 		addrChan:       conf.AddrChan,
 		disconnectChan: make(chan string),

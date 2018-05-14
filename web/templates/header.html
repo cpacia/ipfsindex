@@ -9,8 +9,8 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp" crossorigin="anonymous">
     <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
     <script src="/static/lib/qrcode.min.js"></script>
     <script src="/static/js/index.js"></script>
     <script>
@@ -44,6 +44,16 @@
                 </div>
                 <div id="uploadForm" class="modal-body">
                     Enter an IPFS Content ID and a quality description to upload to the Bitcoin Cash blockchain.
+                    <div class="dropdown my-2">
+                        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Category
+                        </button>
+                        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                            <button class="dropdown-item" name="Movies">Movies</button>
+                            <button class="dropdown-item" name="TV Shows">TV Shows</button>
+                            <button class="dropdown-item" name="Music">Music</button>
+                        </div>
+                    </div>
                     <input id="cidInput" type="text" class="form-control mt-2 mb-2" placeholder="Cid" aria-label="cid" aria-describedby="basic-addon1">
                     <textarea id="description" class="form-control" placeholder="Description" aria-label="description" rows="5" aria-describedby="basic-addon1"></textarea>
                     <div id="remainingChars" class="mt-2">214 characters remaining</div>

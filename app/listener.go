@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/xml"
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
@@ -10,6 +11,8 @@ import (
 	"github.com/jinzhu/gorm"
 	"sync"
 	"time"
+	"strings"
+	"github.com/microcosm-cc/bluemonday"
 )
 
 type UserEntry struct {
@@ -64,7 +67,8 @@ func (l *TransactionListener) ListenBitcoinCash(tx wallet.TransactionCallback) {
 				if l.db.Where("txid = ?", chainHash.String()).First(fd).RecordNotFound() {
 					l.db.Save(&db.FileDescriptor{
 						Txid:        chainHash.String(),
-						Description: parsedScript.(*AddFileScript).Description,
+						Category:    getCategory(parsedScript.(*AddFileScript).Description),
+						Description: removeTags(parsedScript.(*AddFileScript).Description),
 						Timestamp:   ts,
 						Height:      uint32(tx.Height),
 						Cid:         parsedScript.(*AddFileScript).Cid.String(),
@@ -170,4 +174,26 @@ func (l *TransactionListener) cleanup() {
 			delete(l.UserEntries, k)
 		}
 	}
+}
+
+type Query struct {
+	XMLName xml.Name `xml:"meta"`
+	Content    string   `xml:"content,attr"`
+	Name   string   `xml:"name,attr"`
+}
+
+func getCategory(description string) string {
+	var q Query
+	err := xml.Unmarshal([]byte(description), &q)
+	if err != nil {
+		return ""
+	}
+	if strings.ToLower(q.Name) == "category" {
+		return q.Content
+	}
+	return ""
+}
+
+func removeTags(description string) string {
+	return bluemonday.UGCPolicy().Sanitize(description)
 }

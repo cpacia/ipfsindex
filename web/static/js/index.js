@@ -8,18 +8,24 @@ $(function(){
         $('#uploadModal').modal();
     });
 
-    $("#paymentAddress").click(function( event ) {
-        event.preventDefault();
-        $('[data-toggle="copyTooltip"]').tooltip()
+    $('.dropdown-toggle').dropdown();
+    $('.dropdown-item').click(function(event){
+        $('#dropdownMenuButton').html(event.target.name);
+        updateRemaining();
     });
 
     $("#uploadButton").click(function() {
+        var desc = $("#description").val();
+        var selectedCategory = $('#dropdownMenuButton').html();
+        if (!selectedCategory.includes("Category")) {
+            desc += '<meta name="category" content="' + selectedCategory + '"/>';
+        }
         $.ajax({
             type: "POST",
             url: "/addfile",
             data: JSON.stringify({
                 cid: $("#cidInput").val(),
-                description: $("#description").val()
+                description: desc
             }),
             success: function(data){
                 createQRCode(data.paymentAddress);
@@ -64,7 +70,7 @@ $(function(){
                         var n = txt.indexOf(" ");
                         var current = txt.substr(0, n);
                         var remaining = parseInt(current) - data.length;
-                        $("#remainingChars").text(remaining + " characters remaining")
+                        $("#remainingChars").text(remaining + " characters remaining");
                     }
                     cidLength = data.length;
                     $("#cidInput").css("color", "#495057");
@@ -78,13 +84,21 @@ $(function(){
     });
 
     $("#description").on('change keyup paste', function() {
-        var desc =  $('#description').val();
-        var currentLenth = lengthInUtf8Bytes(desc);
-        var remaining = 214 - cidLength - currentLenth;
-        $("#remainingChars").text(remaining + " characters remaining");
-        maybeEnableUploadButton();
+        updateRemaining();
     });
 });
+
+function updateRemaining(){
+    var desc = $("#description").val();
+    var selectedCategory = $('#dropdownMenuButton').html();
+    if (!selectedCategory.includes("Category")) {
+        desc += '<meta name="category" content="' + selectedCategory + '"/>';
+    }
+    var currentLenth = lengthInUtf8Bytes(desc);
+    var remaining = 214 - cidLength - currentLenth;
+    $("#remainingChars").text(remaining + " characters remaining");
+    maybeEnableUploadButton();
+}
 
 function lengthInUtf8Bytes(str) {
     var m = encodeURIComponent(str).match(/%[89ABab]/g);
@@ -99,6 +113,7 @@ function clearModal() {
     $("#paymentForm").hide();
     $("#uploadButton").show();
     $("#paymentReceived").hide();
+    $('#dropdownMenuButton').html("Category");
     qrc.clear();
     cidLength = 0;
     maybeEnableUploadButton();
