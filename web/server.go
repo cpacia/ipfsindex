@@ -148,6 +148,7 @@ func (s *Server) submitAddFile(w http.ResponseWriter, r *http.Request) {
 	type AddFile struct {
 		Cid         string `json:"cid"`
 		Description string `json:"description"`
+		Category    string `json:"category"`
 	}
 	af := new(AddFile)
 	err := json.NewDecoder(r.Body).Decode(af)
@@ -173,7 +174,7 @@ func (s *Server) submitAddFile(w http.ResponseWriter, r *http.Request) {
 	rand.Read(b)
 	entry := app.UserEntry{
 		ID:          hex.EncodeToString(b),
-		Script:      &app.AddFileScript{*id, af.Description},
+		Script:      &app.AddFileScript{*id, af.Description, af.Category},
 		Timestamp:   time.Now(),
 		Address:     addr,
 		AmountToPay: amount,

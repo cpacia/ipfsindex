@@ -17,15 +17,16 @@ $(function(){
     $("#uploadButton").click(function() {
         var desc = $("#description").val();
         var selectedCategory = $('#dropdownMenuButton').html();
-        if (!selectedCategory.includes("Category")) {
-            desc += '<meta name="category" content="' + selectedCategory + '"/>';
+        if (selectedCategory == "Category") {
+            selectedCategory = ""
         }
         $.ajax({
             type: "POST",
             url: "/addfile",
             data: JSON.stringify({
                 cid: $("#cidInput").val(),
-                description: desc
+                description: desc,
+                category: selectedCategory
             }),
             success: function(data){
                 createQRCode(data.paymentAddress);
@@ -90,12 +91,12 @@ $(function(){
 
 function updateRemaining(){
     var desc = $("#description").val();
+    var currentLenth = lengthInUtf8Bytes(desc);
+    var remaining = 212 - cidLength - currentLenth;
     var selectedCategory = $('#dropdownMenuButton').html();
     if (!selectedCategory.includes("Category")) {
-        desc += '<meta name="category" content="' + selectedCategory + '"/>';
+        remaining -= lengthInUtf8Bytes(selectedCategory) + 2;
     }
-    var currentLenth = lengthInUtf8Bytes(desc);
-    var remaining = 214 - cidLength - currentLenth;
     $("#remainingChars").text(remaining + " characters remaining");
     maybeEnableUploadButton();
 }
@@ -120,7 +121,11 @@ function clearModal() {
 }
 
 function maybeEnableUploadButton() {
-    if (cidValid && $('#description').val().length > 0) {
+    var txt = $("#remainingChars").text();
+    var n = txt.indexOf(" ");
+    var current = txt.substr(0, n);
+    var remaining = parseInt(current);
+    if (cidValid && $('#description').val().length > 0 && remaining >= 0) {
         $('#uploadButton').prop('disabled', false);
     } else {
         $('#uploadButton').prop('disabled', true);

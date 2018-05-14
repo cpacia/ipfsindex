@@ -38,8 +38,8 @@ func NewWallet(params *chaincfg.Params, repoPath string, trustedPeer net.Addr) (
 	}
 
 	config.AdditionalFilters = [][]byte{
-		{FlagByte, byte(AddFile)},
-		{FlagByte, byte(Vote)},
+		{FlagByte, byte(AddFileCommand)},
+		{FlagByte, byte(VoteCommand)},
 	}
 
 	os.Mkdir(config.RepoPath, os.ModePerm) // Make sure directory exists

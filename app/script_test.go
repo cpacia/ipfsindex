@@ -3,7 +3,6 @@ package app
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
 	"testing"
@@ -11,50 +10,65 @@ import (
 
 type TestScript struct {
 	script        string
-	data          string
+	data          ParsedScript
+	cidHex        string
+	txidHex       string
 	expectedError error
 }
 
 var testScripts = []TestScript{
 	{
-		"6a029F012212200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b2390b68656c6c6f20776f726c64",
-		"hello world",
+		"6a029F01230012200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b2390c0168656c6c6f20776f726c64",
+		ParsedScript{
+			Description: "hello world",
+		},
+		"12200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b239",
+		"",
 		nil,
 	},
 	{
-		"6a029F02200934aaa9e475375cea77c01853d6c411e6c4446c81da76797f696fd70e143cc3510D676f6f6462796520776f726c64",
-		"goodbye world",
+		"6a029F01230012200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b2390c0168656c6c6f20776f726c6406054d75736963",
+		ParsedScript{
+			Description: "hello world",
+			Category: "Music",
+		},
+		"12200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b239",
+		"",
 		nil,
 	},
 	{
-		"6b029F022212200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b239010b68656c6c6f20776f726c64",
+		"6a029F0221020934aaa9e475375cea77c01853d6c411e6c4446c81da76797f696fd70e143cc30203510E04676f6f6462796520776f726c64",
+		ParsedScript{
+			Comment: "goodbye world",
+			Upvote: true,
+		},
 		"",
-		ErrInvalidScript,
+		"0934aaa9e475375cea77c01853d6c411e6c4446c81da76797f696fd70e143cc3",
+		nil,
 	},
 	{
-		"6a029F0222122a",
-		"",
-		ErrInvalidLength,
+		script: "6b029F022212200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b239010b68656c6c6f20776f726c64",
+		expectedError: ErrInvalidScript,
 	},
 	{
-		"6a029F0222122a6a029F032212200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b239010b68656c6c6f20776f726c646a029F032212200709a33d6f07812bc1d7cbddb6a029F032212200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b239010b68656c6c6f20776f726c64bc2f95f4444f5d0cf5deb05a441c4b21fc6b23906a029F032212200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b239010b68656c6c6f20776f726c646a029F032212200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b239010b68656c6c6f20776f726c6410b68656c6c6f20776f726c64",
-		"",
-		ErrInvalidLength,
+		script:"6a029F0222122a",
+		expectedError: ErrInvalidLength,
 	},
 	{
-		"6a029F032212200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b239010b68656c6c6f20776f726c64",
-		"",
-		ErrUnknownCommand,
+		script: "6a029F0222122a6a029F032212200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b239010b68656c6c6f20776f726c646a029F032212200709a33d6f07812bc1d7cbddb6a029F032212200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b239010b68656c6c6f20776f726c64bc2f95f4444f5d0cf5deb05a441c4b21fc6b23906a029F032212200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b239010b68656c6c6f20776f726c646a029F032212200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b239010b68656c6c6f20776f726c6410b68656c6c6f20776f726c64",
+		expectedError: ErrInvalidLength,
 	},
 	{
-		"6a0294032212200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b239010b68656c6c6f20776f726c64",
-		"",
-		ErrInvalidScript,
+		script:"6a029F032212200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b239010b68656c6c6f20776f726c64",
+		expectedError: ErrUnknownCommand,
 	},
 	{
-		"6a049F032212200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b239010b68656c6c6f20776f726c64",
-		"",
-		ErrInvalidScript,
+		script:"6a0294032212200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b239010b68656c6c6f20776f726c64",
+		expectedError: ErrInvalidScript,
+	},
+	{
+		script:"6a049F032212200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b239010b68656c6c6f20776f726c64",
+		expectedError: ErrInvalidScript,
 	},
 }
 
@@ -67,10 +81,48 @@ func TestParseScript(t *testing.T) {
 		returnedScript, err := ParseScript(script)
 		if err != test.expectedError {
 			t.Errorf("Test script %d failed: %s", i, err.Error())
+			continue
 		}
-		if test.data != "" && test.data != returnedScript.Data() {
-			fmt.Println(returnedScript.Data())
-			t.Errorf("Test script %d return incorrect data", i)
+		if err == nil {
+			if test.cidHex != "" {
+				b, err := hex.DecodeString(test.cidHex)
+				if err != nil {
+					t.Error(err)
+				}
+				c, err := cid.Cast(b)
+				if err != nil {
+					t.Error(err)
+				}
+				test.data.Cid = *c
+			}
+			if test.txidHex != "" {
+				ch, err := chainhash.NewHashFromStr(test.txidHex)
+				if err != nil {
+					t.Error(err)
+				}
+				test.data.Txid = *ch
+			}
+
+			r1 := returnedScript.Parsed()
+			r2 := test.data
+			if r1.Cid.String() != r2.Cid.String() {
+				t.Errorf("Test script %d parsed incorrectly", i)
+			}
+			if returnedScript.Parsed().Txid.String() != test.data.Txid.String() {
+				t.Errorf("Test script %d parsed incorrectly", i)
+			}
+			if returnedScript.Parsed().Upvote != test.data.Upvote {
+				t.Errorf("Test script %d parsed incorrectly", i)
+			}
+			if returnedScript.Parsed().Description != test.data.Description {
+				t.Errorf("Test script %d parsed incorrectly", i)
+			}
+			if returnedScript.Parsed().Comment != test.data.Comment {
+				t.Errorf("Test script %d parsed incorrectly", i)
+			}
+			if returnedScript.Parsed().Category != test.data.Category {
+				t.Errorf("Test script %d parsed incorrectly", i)
+			}
 		}
 	}
 }

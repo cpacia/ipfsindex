@@ -10,15 +10,16 @@ import (
 )
 
 var (
-	ErrInvalidLength   = errors.New("script does not meet the minimum length")
-	ErrInvalidScript   = errors.New("invalid script")
-	ErrUnknownCommand  = errors.New("unknown command")
-	ErrInvalidPushData = errors.New("invalid pushdata")
+	ErrInvalidLength      = errors.New("script does not meet the minimum length")
+	ErrInvalidScript      = errors.New("invalid script")
+	ErrUnknownCommand     = errors.New("unknown command")
+	ErrUnknownDataElement = errors.New("unknown data element")
+	ErrInvalidPushData    = errors.New("invalid pushdata")
 )
 
 const (
 	FlagByte      = 0x9F
-	MinScriptSize = 1 + 1 + 2 + 1 + 34
+	MinScriptSize = 1 + 1 + 2 + 1 + 32
 	MaxScriptSize = 220
 	HashSize      = 32
 )
@@ -26,7 +27,7 @@ const (
 type Command byte
 
 func (c *Command) String() string {
-	if *c == AddFile {
+	if *c == AddFileCommand {
 		return "AddFile"
 	} else {
 		return "Vote"
@@ -34,40 +35,61 @@ func (c *Command) String() string {
 }
 
 const (
-	AddFile Command = 0x01
-	Vote    Command = 0x02
+	AddFileCommand Command = 0x01
+	VoteCommand    Command = 0x02
+)
+
+type DataType byte
+
+const (
+	Cid         DataType = 0x00
+	Description DataType = 0x01
+	Txid        DataType = 0x02
+	Vote        DataType = 0x03
+	Comment     DataType = 0x04
+	Category    DataType = 0x05
 )
 
 type Script interface {
 	Command() Command
 	ID() []byte
-	Data() string
+	Parsed() ParsedScript
 	Serialize() ([]byte, error)
 }
 
 type AddFileScript struct {
 	Cid         cid.Cid
 	Description string
+	Category    string
 }
 
 func (as *AddFileScript) Command() Command {
-	return AddFile
+	return AddFileCommand
 }
 
 func (as *AddFileScript) ID() []byte {
 	return as.Cid.Bytes()
 }
 
-func (as *AddFileScript) Data() string {
-	return as.Description
+func (as *AddFileScript) Parsed() ParsedScript {
+	return ParsedScript{
+		Description: as.Description,
+		Cid: as.Cid,
+		Category: as.Category,
+	}
 }
 
 func (as *AddFileScript) Serialize() ([]byte, error) {
 	builder := txscript.NewScriptBuilder()
 	builder.AddOp(txscript.OP_RETURN)
-	builder.AddData([]byte{FlagByte, byte(AddFile)})
-	builder.AddData(as.Cid.Bytes())
-	builder.AddData([]byte(as.Description))
+	builder.AddData([]byte{FlagByte, byte(AddFileCommand)})
+	builder.AddData(append([]byte{byte(Cid)}, as.Cid.Bytes()...))
+	if as.Description != "" {
+		builder.AddData(append([]byte{byte(Description)}, []byte(as.Description)...))
+	}
+	if as.Category != "" {
+		builder.AddData(append([]byte{byte(Category)}, []byte(as.Category)...))
+	}
 	return builder.Script()
 }
 
@@ -78,32 +100,36 @@ type VoteScript struct {
 }
 
 func (vs *VoteScript) Command() Command {
-	return Vote
+	return VoteCommand
 }
 
 func (vs *VoteScript) ID() []byte {
 	return vs.Txid.CloneBytes()
 }
 
-func (vs *VoteScript) Data() string {
-	return vs.Comment
+func (vs *VoteScript) Parsed() ParsedScript {
+	return ParsedScript{
+		Txid: vs.Txid,
+		Comment: vs.Comment,
+		Upvote: vs.Upvote,
+	}
 }
 
 func (vs *VoteScript) Serialize() ([]byte, error) {
 	builder := txscript.NewScriptBuilder()
 	builder.AddOp(txscript.OP_RETURN)
-	builder.AddData([]byte{FlagByte, byte(Vote)})
+	builder.AddData([]byte{FlagByte, byte(VoteCommand)})
 	txid, err := toBigEndian(&vs.Txid)
 	if err != nil {
 		return []byte{}, err
 	}
-	builder.AddData(txid)
+	builder.AddData(append([]byte{byte(Txid)}, txid...))
 	v := txscript.OP_0
 	if vs.Upvote {
 		v = txscript.OP_1
 	}
-	builder.AddOp(byte(v))
-	builder.AddData([]byte(vs.Comment))
+	builder.AddData([]byte{byte(Vote), byte(v)})
+	builder.AddData(append([]byte{byte(Comment)}, []byte(vs.Comment)...))
 	return builder.Script()
 }
 
@@ -131,40 +157,25 @@ func ParseScript(script []byte) (Script, error) {
 
 	var s Script
 	switch Command(b) {
-	case AddFile:
-		id, err := extractCid(buf)
-		if err != nil {
-			return nil, err
-		}
-		description, err := parsePushData(buf)
+	case AddFileCommand:
+		ps, err := parseDataElements(buf)
 		if err != nil {
 			return nil, err
 		}
 		s = &AddFileScript{
-			Cid:         id,
-			Description: string(description),
+			Cid:         ps.Cid,
+			Description: ps.Description,
+			Category:    ps.Category,
 		}
-	case Vote:
-		txidBytes, err := parsePushData(buf)
-		if err != nil {
-			return nil, err
-		}
-		txid, err := fromBigEndian(txidBytes)
-		if err != nil {
-			return nil, err
-		}
-		v, err := buf.ReadByte()
-		if err != nil {
-			return nil, err
-		}
-		comment, err := parsePushData(buf)
+	case VoteCommand:
+		ps, err := parseDataElements(buf)
 		if err != nil {
 			return nil, err
 		}
 		s = &VoteScript{
-			Txid:    *txid,
-			Comment: string(comment),
-			Upvote:  int(v) > 0,
+			Txid:    ps.Txid,
+			Comment: ps.Comment,
+			Upvote:  ps.Upvote,
 		}
 	default:
 		return nil, ErrUnknownCommand
@@ -172,24 +183,49 @@ func ParseScript(script []byte) (Script, error) {
 	return s, nil
 }
 
-func evalByte(buf *bytes.Buffer, check byte) (bool, error) {
-	b, err := buf.ReadByte()
-	if err != nil {
-		return false, err
-	}
-	return b == check, nil
+type ParsedScript struct {
+	Cid         cid.Cid
+	Description string
+	Txid        chainhash.Hash
+	Upvote      bool
+	Comment     string
+	Category    string
 }
 
-func extractCid(script *bytes.Buffer) (cid.Cid, error) {
-	cidBytes, err := parsePushData(script)
-	if err != nil {
-		return cid.Cid{}, err
+func parseDataElements(buf *bytes.Buffer) (ParsedScript, error) {
+	var ps ParsedScript
+	for buf.Len() > 1 {
+		data, err := parsePushData(buf)
+		if err != nil {
+			return ps, err
+		}
+		switch DataType(data[0]) {
+		case Cid:
+			c, err := cid.Cast(data[1:])
+			if err != nil {
+				return ps, err
+			}
+			ps.Cid = *c
+		case Description:
+			ps.Description = string(data[1:])
+		case Txid:
+			ch, err := fromBigEndian(data[1:])
+			if err != nil {
+				return ps, err
+			}
+			ps.Txid = *ch
+		case Vote:
+			ps.Upvote = byte(data[1]) > 0x00
+		case Comment:
+			ps.Comment = string(data[1:])
+		case Category:
+			ps.Category = string(data[1:])
+		}
 	}
-	c, err := cid.Cast(cidBytes)
-	if err != nil {
-		return cid.Cid{}, err
+	if buf.Len() != 0 {
+		return ps, ErrInvalidScript
 	}
-	return *c, nil
+	return ps, nil
 }
 
 func parsePushData(script *bytes.Buffer) (ret []byte, err error) {
@@ -204,6 +240,14 @@ func parsePushData(script *bytes.Buffer) (ret []byte, err error) {
 		return ret, ErrInvalidPushData
 	}
 	return script.Next(int(l)), nil
+}
+
+func evalByte(buf *bytes.Buffer, check byte) (bool, error) {
+	b, err := buf.ReadByte()
+	if err != nil {
+		return false, err
+	}
+	return b == check, nil
 }
 
 func toBigEndian(txid *chainhash.Hash) ([]byte, error) {

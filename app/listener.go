@@ -1,7 +1,6 @@
 package app
 
 import (
-	"encoding/xml"
 	"github.com/OpenBazaar/wallet-interface"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
@@ -11,8 +10,6 @@ import (
 	"github.com/jinzhu/gorm"
 	"sync"
 	"time"
-	"strings"
-	"github.com/microcosm-cc/bluemonday"
 )
 
 type UserEntry struct {
@@ -56,9 +53,10 @@ func (l *TransactionListener) ListenBitcoinCash(tx wallet.TransactionCallback) {
 		if err != nil {
 			parsedScript, err := ParseScript(out.ScriptPubKey)
 			if err != nil {
+				log.Error(err)
 				continue
 			}
-			if parsedScript.Command() == AddFile {
+			if parsedScript.Command() == AddFileCommand {
 				ts := time.Now()
 				if tx.Height > 0 {
 					ts = tx.BlockTime
@@ -67,8 +65,8 @@ func (l *TransactionListener) ListenBitcoinCash(tx wallet.TransactionCallback) {
 				if l.db.Where("txid = ?", chainHash.String()).First(fd).RecordNotFound() {
 					l.db.Save(&db.FileDescriptor{
 						Txid:        chainHash.String(),
-						Category:    getCategory(parsedScript.(*AddFileScript).Description),
-						Description: removeTags(parsedScript.(*AddFileScript).Description),
+						Category:    parsedScript.(*AddFileScript).Category,
+						Description: parsedScript.(*AddFileScript).Description,
 						Timestamp:   ts,
 						Height:      uint32(tx.Height),
 						Cid:         parsedScript.(*AddFileScript).Cid.String(),
@@ -78,7 +76,7 @@ func (l *TransactionListener) ListenBitcoinCash(tx wallet.TransactionCallback) {
 					l.db.Model(fd).Updates(&db.FileDescriptor{Height: uint32(tx.Height), Timestamp: ts})
 					log.Debugf("Updated file descriptor with confirmation, tx: %s", chainHash.String())
 				}
-			} else if parsedScript.Command() == Vote {
+			} else if parsedScript.Command() == VoteCommand {
 				ts := time.Now()
 				if tx.Height > 0 {
 					ts = tx.BlockTime
@@ -174,26 +172,4 @@ func (l *TransactionListener) cleanup() {
 			delete(l.UserEntries, k)
 		}
 	}
-}
-
-type Query struct {
-	XMLName xml.Name `xml:"meta"`
-	Content    string   `xml:"content,attr"`
-	Name   string   `xml:"name,attr"`
-}
-
-func getCategory(description string) string {
-	var q Query
-	err := xml.Unmarshal([]byte(description), &q)
-	if err != nil {
-		return ""
-	}
-	if strings.ToLower(q.Name) == "category" {
-		return q.Content
-	}
-	return ""
-}
-
-func removeTags(description string) string {
-	return bluemonday.UGCPolicy().Sanitize(description)
 }
