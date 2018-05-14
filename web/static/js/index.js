@@ -28,6 +28,19 @@ $(function(){
                 $("#uploadForm").hide();
                 $("#paymentForm").show();
                 $("#uploadButton").hide();
+                var url = 'ws://'+ hostname + ':' + port + '/ws';
+                var socket = new WebSocket(url);
+                socket.onopen = function(event) {
+                    socket.send(data.paymentAddress);
+                };
+                socket.onmessage = function(event) {
+                    $("#paymentForm").hide();
+                    $("#uploadForm").hide();
+                    $("#paymentReceived").show();
+                    var audio = new Audio('/static/audio/coin-sound.mp3');
+                    audio.play();
+                    socket.close();
+                };
             },
             error: function(result) {
                 alert("Oops we messed up. Try again later.");
@@ -85,6 +98,7 @@ function clearModal() {
     $("#uploadForm").show();
     $("#paymentForm").hide();
     $("#uploadButton").show();
+    $("#paymentReceived").hide();
     qrc.clear();
     cidLength = 0;
     maybeEnableUploadButton();

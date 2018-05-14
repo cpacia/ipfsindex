@@ -19,6 +19,7 @@ type Start struct {
 	Testnet     bool   `short:"t" long:"testnet" description:"use the test network"`
 	Regtest     bool   `short:"r" long:"regtest" description:"run in regression test mode"`
 	Port        int    `short:"p" long:"port" description:"the web server port" default:"8080"`
+	Hostname    string `short:"h" long:"hostname" description:"the hostname for the server" default:"localhost"`
 	TrustedPeer string `short:"i" long:"trustedpeer" description:"specify a single trusted peer to connect to"`
 }
 
@@ -89,9 +90,21 @@ func (x *Start) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	tl := app.NewTransactionListener(wallet, database)
+
+	addrChan := make(chan string)
+	tl := app.NewTransactionListener(wallet, database, addrChan)
 	wallet.AddTransactionListener(tl.ListenBitcoinCash)
-	webServer, err := web.NewServer(wallet, tl, database, x.Port)
+
+	conf := web.Config{
+		Wallet:   wallet,
+		Listener: tl,
+		Db:       database,
+		Port:     x.Port,
+		Hostname: x.Hostname,
+		AddrChan: addrChan,
+	}
+
+	webServer, err := web.NewServer(conf)
 	if err != nil {
 		return err
 	}

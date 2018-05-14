@@ -6850,3 +6850,7 @@ input[type="submit"]:hover {
 
 .btn-primary:not(:disabled):not(.disabled):active:focus, .btn-primary:not(:disabled):not(.disabled).active:focus, .show > .btn-primary.dropdown-toggle:focus {
   box-shadow: 0 0 0 0.2rem rgba(76, 201, 71, 0.25); }
+
+.success {
+  color: #4cc947;
+  font-size: 200pt; }

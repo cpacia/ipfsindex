@@ -14,6 +14,8 @@
     <script src="/static/lib/qrcode.min.js"></script>
     <script src="/static/js/index.js"></script>
     <script>
+        var hostname = {{.Hostname}};
+        var port = {{.Port}};
         function createQRCode(address) {
             qrc.makeCode({{.AddressPrefix}}+address);
         }
@@ -50,6 +52,9 @@
                     <div id="paymentAmount" class="my-3"></div>
                     <div id="qrcode" class="row justify-content-center"></div>
                     <div id="paymentAddress" class="my-3"></div>
+                </div>
+                <div id="paymentReceived" class="modal-body text-center" style="display: none">
+                    <i class="success fas fa-check-circle my-3"></i>
                 </div>
                 <div class="modal-footer">
                     <button onclick="clearModal()" type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
