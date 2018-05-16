@@ -1,6 +1,7 @@
 var cidLength = 0;
 var cidValid = false;
 var qrc;
+var success;
 $(function(){
     qrc = new QRCode(document.getElementById("qrcode"), "");
     $("#upload").click(function( event ) {
@@ -41,12 +42,14 @@ $(function(){
                     socket.send(data.paymentAddress);
                 };
                 socket.onmessage = function(event) {
+                    var response = JSON.parse(event.data);
                     $("#paymentForm").hide();
                     $("#uploadForm").hide();
                     $("#paymentReceived").show();
                     var audio = new Audio('/static/audio/coin-sound.mp3');
                     audio.play();
                     socket.close();
+                    success = response.txid;
                 };
             },
             error: function(result) {
@@ -118,6 +121,9 @@ function clearModal() {
     qrc.clear();
     cidLength = 0;
     maybeEnableUploadButton();
+    if (success != "" && success != "undefined") {
+        window.location = "/file/" + success
+    }
 }
 
 function maybeEnableUploadButton() {

@@ -118,3 +118,42 @@ input[type="submit"]:hover {
   color: #4cc947;
   font-size: 200pt;
 }
+
+.dw {
+  width: 73%;
+}
+.det-header {
+  width: 75%;
+  margin-top: 100px;
+  border-color: #c6c8ca;
+  font-size: 25px;
+}
+
+.det-color {
+  background-color: #444;
+}
+
+.table th,
+.table td {
+  border-top: none; }
+.table thead th {
+  border-bottom: none; }
+.table tbody + tbody {
+  border-top: none; }
+
+.tk {
+  color: #b9bbbe;
+}
+
+.vote-color {
+  color: darkgrey;
+}
+
+.thumb:hover {
+  color: #1b1e21;
+  cursor: pointer;
+}
+
+.fc {
+  font-size: 20px;
+}

@@ -1,0 +1,41 @@
+{{define "details"}}
+{{template "header.html"}}
+
+<div class="container det-header align-middle pt-1 pt-1 pl-3">
+    <div class="d-flex">
+        <div class="mr-auto p-2">{{.Description}}</div>
+        <div class="p-2 vote-color d-flex"><i class="fas thumb fa-thumbs-up"></i><p class="fc ml-1">{{.Upvotes}}</p></div>
+        <div class="p-2 vote-color d-flex"><i class="fas thumb fa-thumbs-down"></i><p class="fc ml-1">{{.Downvotes}}</p></div>
+    </div>
+</div>
+<table class="container dw table table-striped">
+    <tbody>
+        <tr>
+            <td class="tk">Cid</td>
+            <td>{{.Cid}}</td>
+        </tr>
+        <tr>
+            <td class="tk">Link</td>
+            <td><a href="https://ipfs.io/ipfs/{{.Cid}}">https://ipfs.io/ipfs/{{.Cid}}</a></td>
+        </tr>
+        <tr>
+            <td class="tk">Txid</td>
+            <td>{{.Txid}}</td>
+        </tr>
+        <tr>
+            <td class="tk">Uploaded At</td>
+            <td>{{.Timestamp}}</td>
+        </tr>
+        <tr>
+            <td class="tk">Category</td>
+            <td>{{.Category}}</td>
+        </tr>
+        <tr>
+            <td class="tk">Confirmations</td>
+            <td>{{.Confirmations}}</td>
+        </tr>
+    </tbody>
+</table>
+
+{{template "footer.html"}}
+{{end}}

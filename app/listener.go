@@ -25,11 +25,11 @@ type TransactionListener struct {
 	UserEntries map[string]UserEntry
 	wallet      *bitcoincash.SPVWallet
 	db          *db.Database
-	addrChan    chan string
+	addrChan    chan [2]string
 	lock        sync.RWMutex
 }
 
-func NewTransactionListener(wallet *bitcoincash.SPVWallet, db *db.Database, addrChan chan string) *TransactionListener {
+func NewTransactionListener(wallet *bitcoincash.SPVWallet, db *db.Database, addrChan chan [2]string) *TransactionListener {
 	tl := &TransactionListener{make(map[string]UserEntry), wallet, db, addrChan, sync.RWMutex{}}
 	ticker := time.NewTicker(time.Minute)
 	go func() {
@@ -137,12 +137,12 @@ func (l *TransactionListener) ListenBitcoinCash(tx wallet.TransactionCallback) {
 				delete(l.UserEntries, e.Address.String())
 				l.lock.Unlock()
 			}()
-			l.addrChan <- e2.Address.String()
 			hash, err := MakeTransaction(l.wallet, utxos, e2.Script)
 			if err != nil {
 				log.Errorf("Error making transaction: req:%s: %s", e2.ID, err.Error())
 				return
 			}
+			l.addrChan <- [2]string{e2.Address.String(), hash.String()}
 			log.Debugf("Successfuly broadcast transaction %s for req:%s", hash.String(), e2.ID)
 		}(e, utxos)
 	}

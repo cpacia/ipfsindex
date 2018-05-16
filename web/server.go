@@ -38,7 +38,7 @@ type Server struct {
 	listener       *app.TransactionListener
 	db             *db.Database
 	siteData       *SiteData
-	addrChan       chan string
+	addrChan       chan [2]string
 	disconnectChan chan string
 	openSockets    map[string]*websocket.Conn
 	socketLock     sync.RWMutex
@@ -59,7 +59,7 @@ type Config struct {
 	Hostname string
 	Port     int
 
-	AddrChan chan string
+	AddrChan chan [2]string
 }
 
 func NewServer(conf Config) (*Server, error) {
@@ -96,6 +96,7 @@ func NewServer(conf Config) (*Server, error) {
 		socketLock:     sync.RWMutex{},
 	}
 	router.PathPrefix("/static").Methods("GET").Handler(http.HandlerFunc(s.serveFiles))
+	router.PathPrefix("/file").Methods("GET").Handler(http.HandlerFunc(s.renderDetails))
 	router.HandleFunc("/addfile", s.submitAddFile).Methods("POST")
 	router.HandleFunc("/validatecid", s.submitValidateCid).Methods("POST")
 	router.HandleFunc("/vote", s.submitVote).Methods("POST")
@@ -144,6 +145,55 @@ func (s *Server) renderIndex(w http.ResponseWriter, r *http.Request) {
 	templates.Lookup("footer").ExecuteTemplate(w, "footer", nil)
 }
 
+func (s *Server) renderDetails(w http.ResponseWriter, r *http.Request) {
+	pth := strings.Split(r.URL.Path, "/")
+	if len(pth) < 3 {
+		// TODO: redirect to a fail whale
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	txid := pth[2]
+	fd := new(db.FileDescriptor)
+	if s.db.Where("txid = ?", txid).First(fd).RecordNotFound() {
+		// TODO: redirect to a fail whale
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	templates, err := template.ParseFiles(path.Join("web", "templates", "details.html"), path.Join("web", "templates", "header.html"), path.Join("web", "templates", "footer.html"))
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	type Details struct {
+		Description   string
+		Cid           string
+		Timestamp     string
+		Txid          string
+		Category      string
+		Upvotes       int64
+		Downvotes     int64
+		Confirmations uint32
+	}
+	confirms := uint32(0)
+	height, _ := s.wallet.ChainTip()
+	if fd.Height > 0 {
+		confirms = (height - fd.Height) + 1
+	}
+	det := Details{
+		Description: fd.Description,
+		Cid: fd.Cid,
+		Timestamp: fd.Timestamp.Format("Mon Jan 2 15:04:05 MST 2006"),
+		Txid: fd.Txid,
+		Category: fd.Category,
+		Upvotes: fd.Upvotes,
+		Confirmations: confirms,
+	}
+	templates.Lookup("header").ExecuteTemplate(w, "header", s.siteData)
+	templates.Lookup("details").ExecuteTemplate(w, "details", &det)
+	templates.Lookup("footer").ExecuteTemplate(w, "footer", nil)
+}
+
 func (s *Server) submitAddFile(w http.ResponseWriter, r *http.Request) {
 	type AddFile struct {
 		Cid         string `json:"cid"`
@@ -179,9 +229,12 @@ func (s *Server) submitAddFile(w http.ResponseWriter, r *http.Request) {
 		Address:     addr,
 		AmountToPay: amount,
 	}
+	if _, err := entry.Script.Serialize(); err == app.ErrInvalidLength {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	s.listener.NewEntry(addr, entry)
 	fmt.Fprintf(w, `{"paymentAddress": "%s", "amountToPay": %f}`, addr.String(), btcutil.Amount(amount).ToBTC())
-	//TODO: map websocket
 }
 
 func (s *Server) submitVote(w http.ResponseWriter, r *http.Request) {
@@ -224,6 +277,10 @@ func (s *Server) submitVote(w http.ResponseWriter, r *http.Request) {
 		Timestamp:   time.Now(),
 		Address:     addr,
 		AmountToPay: amount,
+	}
+	if _, err := entry.Script.Serialize(); err == app.ErrInvalidLength {
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 	s.listener.NewEntry(addr, entry)
 	fmt.Fprintf(w, `{"paymentAddress": "%s", "amountToPay": %f}`, addr.String(), btcutil.Amount(amount).ToBTC())

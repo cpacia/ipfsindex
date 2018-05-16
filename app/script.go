@@ -10,11 +10,10 @@ import (
 )
 
 var (
-	ErrInvalidLength      = errors.New("script does not meet the minimum length")
-	ErrInvalidScript      = errors.New("invalid script")
-	ErrUnknownCommand     = errors.New("unknown command")
-	ErrUnknownDataElement = errors.New("unknown data element")
-	ErrInvalidPushData    = errors.New("invalid pushdata")
+	ErrInvalidLength   = errors.New("script does not meet the minimum or maximum length requirement")
+	ErrInvalidScript   = errors.New("invalid script")
+	ErrUnknownCommand  = errors.New("unknown command")
+	ErrInvalidPushData = errors.New("invalid pushdata")
 )
 
 const (
@@ -74,8 +73,8 @@ func (as *AddFileScript) ID() []byte {
 func (as *AddFileScript) Parsed() ParsedScript {
 	return ParsedScript{
 		Description: as.Description,
-		Cid: as.Cid,
-		Category: as.Category,
+		Cid:         as.Cid,
+		Category:    as.Category,
 	}
 }
 
@@ -109,9 +108,9 @@ func (vs *VoteScript) ID() []byte {
 
 func (vs *VoteScript) Parsed() ParsedScript {
 	return ParsedScript{
-		Txid: vs.Txid,
+		Txid:    vs.Txid,
 		Comment: vs.Comment,
-		Upvote: vs.Upvote,
+		Upvote:  vs.Upvote,
 	}
 }
 
@@ -130,7 +129,14 @@ func (vs *VoteScript) Serialize() ([]byte, error) {
 	}
 	builder.AddData([]byte{byte(Vote), byte(v)})
 	builder.AddData(append([]byte{byte(Comment)}, []byte(vs.Comment)...))
-	return builder.Script()
+	script, err := builder.Script()
+	if err != nil {
+		return []byte{}, err
+	}
+	if len(script) > MaxScriptSize {
+		return []byte{}, ErrInvalidLength
+	}
+	return script, nil
 }
 
 func ParseScript(script []byte) (Script, error) {

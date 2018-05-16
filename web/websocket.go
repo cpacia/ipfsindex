@@ -3,6 +3,7 @@ package web
 import (
 	"github.com/gorilla/websocket"
 	"net/http"
+	"fmt"
 )
 
 var upgrader = websocket.Upgrader{
@@ -48,15 +49,15 @@ func (s *Server) ProcessSocketRequests() {
 			}
 		case addr := <-s.addrChan:
 			s.socketLock.RLock()
-			conn, ok := s.openSockets[addr]
+			conn, ok := s.openSockets[addr[0]]
 			s.socketLock.RUnlock()
 			if ok {
-				err := conn.WriteMessage(1, []byte(`{"paymentReceived": true}`))
+				err := conn.WriteMessage(1, []byte(fmt.Sprintf(`{"paymentReceived": true, "txid": "%s"}`, addr[1])))
 				if err != nil {
 					log.Error(err)
 				}
 				s.socketLock.Lock()
-				delete(s.openSockets, addr)
+				delete(s.openSockets, addr[0])
 				s.socketLock.Unlock()
 			}
 		case <-s.ctx.Done():

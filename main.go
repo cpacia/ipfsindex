@@ -91,7 +91,7 @@ func (x *Start) Execute(args []string) error {
 		return err
 	}
 
-	addrChan := make(chan string)
+	addrChan := make(chan [2]string)
 	tl := app.NewTransactionListener(wallet, database, addrChan)
 	wallet.AddTransactionListener(tl.ListenBitcoinCash)
 
