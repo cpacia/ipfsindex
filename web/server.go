@@ -214,6 +214,7 @@ func (s *Server) renderDetails(w http.ResponseWriter, r *http.Request) {
 		Txid:          fd.Txid,
 		Category:      fd.Category,
 		Upvotes:       fd.Upvotes,
+		Downvotes:     fd.Downvotes,
 		Confirmations: confirms,
 		Comments:      formattedComments,
 	}

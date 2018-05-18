@@ -155,7 +155,7 @@ func (l *TransactionListener) updateVoteColumns(upvote bool, txid string) {
 		column = "upvotes"
 		sign = "+"
 	}
-	l.db.Model(&db.FileDescriptor{}).Where(`txid="`+txid+`"`).UpdateColumn("upvotes", gorm.Expr(column+sign+"1")).UpdateColumn("net", gorm.Expr("net"+sign+"1"))
+	l.db.Model(&db.FileDescriptor{}).Where(`txid="`+txid+`"`).UpdateColumn(column, gorm.Expr(column+"+1")).UpdateColumn("net", gorm.Expr("net"+sign+"1"))
 }
 
 func (l *TransactionListener) NewEntry(addr btcutil.Address, entry UserEntry) {

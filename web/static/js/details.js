@@ -3,6 +3,7 @@ var upvote = false;
 
 $(function(){
     qrv = new QRCode(document.getElementById("voteQrcode"), "");
+    $("#navSearch").removeClass("active");
     $("#upvote").click(function( event ) {
         clearVoteModal();
         upvote = true;
