@@ -16,13 +16,13 @@
     <script>
         var hostname = {{.Hostname}};
         var port = {{.Port}};
-        function createQRCode(address) {
-            qrc.makeCode({{.AddressPrefix}}+address);
+        function createQRCode(code, address) {
+            code.makeCode({{.AddressPrefix}}+address);
         }
     </script>
 </head>
 <body>
-    <div class="container center-block pr-5 pl-5">
+    <div class="container center-block dw">
         <div class="d-flex mb-3 mt-3 justify-content-end">
             <div class="p-2 mr-auto"><img class="header-logo" src="/static/img/logo.png"></div>
             <div class="p-3"><a class="nav active" href="/">Search</a></div>

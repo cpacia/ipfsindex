@@ -6861,7 +6861,9 @@ input[type="submit"]:hover {
 .det-header {
   width: 75%;
   margin-top: 100px;
-  border-color: #c6c8ca;
+  border-color: #c6c8ca; }
+
+.det-font-size {
   font-size: 25px; }
 
 .det-color {
@@ -6889,3 +6891,9 @@ input[type="submit"]:hover {
 
 .fc {
   font-size: 20px; }
+
+.upvote {
+  color: #4cc947; }
+
+.downvote {
+  color: #e4606d; }

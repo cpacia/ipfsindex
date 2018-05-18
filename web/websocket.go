@@ -1,9 +1,9 @@
 package web
 
 import (
+	"fmt"
 	"github.com/gorilla/websocket"
 	"net/http"
-	"fmt"
 )
 
 var upgrader = websocket.Upgrader{

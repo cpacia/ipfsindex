@@ -165,6 +165,12 @@ func (s *Server) renderDetails(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	type Comment struct {
+		Comment   string
+		Txid      string
+		Timestamp string
+		Upvote    bool
+	}
 	type Details struct {
 		Description   string
 		Cid           string
@@ -174,20 +180,42 @@ func (s *Server) renderDetails(w http.ResponseWriter, r *http.Request) {
 		Upvotes       int64
 		Downvotes     int64
 		Confirmations uint32
+		Comments      []Comment
 	}
 	confirms := uint32(0)
 	height, _ := s.wallet.ChainTip()
 	if fd.Height > 0 {
 		confirms = (height - fd.Height) + 1
 	}
+	if fd.Category == "" {
+		fd.Category = "N/A"
+	}
+	comments := []db.Vote{}
+	s.db.Where("fd_txid = ?", txid).Find(&comments)
+
+	var formattedComments []Comment
+	for _, c := range comments {
+		ts := TimeElapsed(c.Timestamp, false)
+		if c.Height <=0 {
+			ts = "unconfirmed"
+		}
+		formattedComments = append(formattedComments, Comment{
+			Comment:   c.Comment,
+			Txid:      c.FDTxid,
+			Timestamp: ts,
+			Upvote:    c.Upvote,
+		})
+	}
+
 	det := Details{
-		Description: fd.Description,
-		Cid: fd.Cid,
-		Timestamp: fd.Timestamp.Format("Mon Jan 2 15:04:05 MST 2006"),
-		Txid: fd.Txid,
-		Category: fd.Category,
-		Upvotes: fd.Upvotes,
+		Description:   fd.Description,
+		Cid:           fd.Cid,
+		Timestamp:     fd.Timestamp.Format("Mon Jan 2 15:04:05 MST 2006"),
+		Txid:          fd.Txid,
+		Category:      fd.Category,
+		Upvotes:       fd.Upvotes,
 		Confirmations: confirms,
+		Comments:      formattedComments,
 	}
 	templates.Lookup("header").ExecuteTemplate(w, "header", s.siteData)
 	templates.Lookup("details").ExecuteTemplate(w, "details", &det)
@@ -250,10 +278,14 @@ func (s *Server) submitVote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fd := &db.FileDescriptor{}
-	if s.db.Where("txid = ?", v.Txid).First(fd).RecordNotFound() || fd.Height <= 0 {
-		w.WriteHeader(http.StatusForbidden)
-		fmt.Fprint(w, "Please wait for the file transaction to confirm before voting")
+	if s.db.Where("txid = ?", v.Txid).First(fd).RecordNotFound() {
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, "File not found in database")
 		return
+	}
+	if fd.Height <= 0 {
+		w.WriteHeader(http.StatusForbidden)
+		fmt.Fprint(w, "Please wait for confirmations before commenting")
 	}
 
 	txid, err := chainhash.NewHashFromStr(v.Txid)

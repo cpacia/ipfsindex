@@ -30,7 +30,7 @@ $(function(){
                 category: selectedCategory
             }),
             success: function(data){
-                createQRCode(data.paymentAddress);
+                createQRCode(qrc, data.paymentAddress);
                 $("#paymentAmount").text("Send " + data.amountToPay + " BCH to the following address:");
                 $("#paymentAddress").text(data.paymentAddress);
                 $("#uploadForm").hide();
@@ -110,7 +110,7 @@ function lengthInUtf8Bytes(str) {
 }
 
 function clearModal() {
-    $("#remainingChars").text("214 characters remaining");
+    $("#remainingChars").text("212 characters remaining");
     $("#description").val("");
     $("#cidInput").val("");
     $("#uploadForm").show();
@@ -121,7 +121,7 @@ function clearModal() {
     qrc.clear();
     cidLength = 0;
     maybeEnableUploadButton();
-    if (success != "" && success != "undefined") {
+    if (success != "" && success != null) {
         window.location = "/file/" + success
     }
 }

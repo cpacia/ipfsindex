@@ -1,15 +1,16 @@
 {{define "details"}}
 {{template "header.html"}}
-
+<script>
+    var txid = "{{.Txid}}";
+</script>
 <div class="container det-header align-middle pt-1 pt-1 pl-3">
-    <div class="d-flex">
+    <div class="d-flex det-font-size">
         <div class="mr-auto p-2">{{.Description}}</div>
-        <div class="p-2 vote-color d-flex"><i class="fas thumb fa-thumbs-up"></i><p class="fc ml-1">{{.Upvotes}}</p></div>
-        <div class="p-2 vote-color d-flex"><i class="fas thumb fa-thumbs-down"></i><p class="fc ml-1">{{.Downvotes}}</p></div>
+        <div id="upvote" class="p-2 vote-color d-flex"><i class="fas thumb fa-thumbs-up"></i><p class="fc ml-1">{{.Upvotes}}</p></div>
+        <div id="downvote" class="p-2 vote-color d-flex"><i class="fas thumb fa-thumbs-down"></i><p class="fc ml-1">{{.Downvotes}}</p></div>
     </div>
-</div>
-<table class="container dw table table-striped">
-    <tbody>
+    <table class="table table-striped">
+        <tbody>
         <tr>
             <td class="tk">Cid</td>
             <td>{{.Cid}}</td>
@@ -34,8 +35,69 @@
             <td class="tk">Confirmations</td>
             <td>{{.Confirmations}}</td>
         </tr>
-    </tbody>
-</table>
-
+        </tbody>
+    </table>
+    <div id="commentContainer">
+        {{range .Comments}}
+        <div class="d-flex py-2">
+            {{if .Upvote}}
+            <i class="fas upvote pl-2 pt-2 det-font-size fa-thumbs-up"></i>
+            {{else}}
+            <i class="fas downvote pl-2 pt-2 det-font-size fa-thumbs-down"></i>
+            {{end}}
+            <div class="container">
+                <div class="row">
+                    <div class="col-4 text-truncate">
+                        {{.Txid}}
+                    </div>
+                    <div class=".col-8">
+                        {{.Timestamp}}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        {{.Comment}}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{end}}
+    </div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="voteModal" tabindex="-1" role="dialog" aria-labelledby="voteModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="voteModalTitle">Leave Feedback</h5>
+                <button type="button" class="close" onclick="clearVoteModal()" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div id="voteForm" class="modal-body">
+                <div class="d-flex">
+                    <div class="mr-auto p-2">Leave a comment about this file (optional): </div>
+                    <div class="p-2 det-font-size vote-color d-flex"><i id="voteUp" class="fas thumb fa-thumbs-up"></i></div>
+                    <div class="p-2 det-font-size vote-color d-flex"><i id="voteDown" class="fas thumb fa-thumbs-down"></i></div>
+                </div>
+                <textarea id="comment" class="form-control" placeholder="Leave a comment" aria-label="comment" rows="5" aria-describedby="basic-addon1"></textarea>
+                <div id="commentRemainingChars" class="mt-2">177 characters remaining</div>
+            </div>
+            <div id="votePaymentForm" class="modal-body text-center" style="display: none">
+                <div id="votePaymentAmount" class="my-3"></div>
+                <div id="voteQrcode" class="row justify-content-center"></div>
+                <div id="votePaymentAddress" class="my-3"></div>
+            </div>
+            <div id="votePaymentReceived" class="modal-body text-center" style="display: none">
+                <i class="success fas fa-check-circle my-3"></i>
+            </div>
+            <div class="modal-footer">
+                <button onclick="clearVoteModal()" type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button id="voteUploadButton" type="button" class="btn btn-primary">Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="/static/js/details.js"></script>
 {{template "footer.html"}}
 {{end}}
