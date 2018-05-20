@@ -1,0 +1,82 @@
+{{define "trending"}}
+{{template "header.html"}}
+<script>
+    var more = {{.More}};
+    var page = {{.Page}};
+    var selectedCategory = {{.Category}};
+</script>
+{{if .Files}}
+<div class="container det-header categoryBox align-middle pt-1 pt-1 pl-3">
+    <div class="dropdown my-2">
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="categoryMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            Category
+        </button>
+        <div class="dropdown-menu" aria-labelledby="categoryMenuButton">
+            <button class="dropdown-item categoryButton" name="Movies">Movies</button>
+            <button class="dropdown-item categoryButton" name="TV Shows">TV Shows</button>
+            <button class="dropdown-item categoryButton" name="Images">Images</button>
+            <button class="dropdown-item categoryButton" name="Music Videos">Music Videos</button>
+            <button class="dropdown-item categoryButton" name="Video Clips">Video Clips</button>
+            <button class="dropdown-item categoryButton" name="Music">Music</button>
+            <button class="dropdown-item categoryButton" name="Audio Books">Audio Books</button>
+            <button class="dropdown-item categoryButton" name="Sound Clips">Sound Clips</button>
+            <button class="dropdown-item categoryButton" name="Software">Software</button>
+            <button class="dropdown-item categoryButton" name="E-books">E-books</button>
+            <button class="dropdown-item categoryButton" name="Academic Papers">Academic Papers</button>
+            <button class="dropdown-item categoryButton" name="Games">Games</button>
+            <button class="dropdown-item categoryButton" name="Porn">Porn</button>
+        </div>
+    </div>
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th scope="col">Category</th>
+            <th scope="col">Description</th>
+            <th scope="col"><i class="fas thumb fa-thumbs-up"></i></th>
+            <th scope="col"><i class="fas thumb fa-thumbs-down"></i></th>
+            <th scope="col">+/-</th>
+        </tr>
+        </thead>
+        <tbody>
+        {{range .Files}}
+        <tr style="cursor: pointer;" onclick="goto({{.Txid}})" name="{{.Txid}}">
+            <td>{{.Category}}</td>
+            <td>{{.Description}}</td>
+            <td>{{.Upvotes}}</td>
+            <td>{{.Downvotes}}</td>
+            <td>{{.FormattedNet}}</td>
+        </tr>
+        {{end}}
+        </tbody>
+    </table>
+    <nav aria-label="...">
+        <ul class="pt-3 pagination justify-content-end">
+            <li id="prevPage" class="page-item disabled">
+                <span class="page-link">Previous</span>
+            </li>
+            <li class="page-item">
+              <span class="page-link">
+                {{.Page}}
+              </span>
+            </li>
+            <li id="nextPage" class="page-item">
+                <span class="page-link">Next</span>
+            </li>
+        </ul>
+    </nav>
+</div>
+{{else}}
+<div class="container-fluid">
+    <div class="row justify-content-center vertical-center">
+        <div class="col-5 text-center">
+            <div class="notfound"><img src="/static/img/notfound.png"><br/></div>
+            <div class="pt-4">
+                No results found
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
+<script src="/static/js/trending.js"></script>
+{{template "footer.html"}}
+{{end}}

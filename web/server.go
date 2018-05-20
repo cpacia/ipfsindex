@@ -51,6 +51,18 @@ type SiteData struct {
 	Port          int
 }
 
+type FormattedFile struct {
+	db.FileDescriptor
+	FormattedNet string
+}
+
+type SearchResult struct {
+	Files []FormattedFile
+	More bool
+	Page int
+	Category string
+}
+
 type Config struct {
 	Wallet   *bitcoincash.SPVWallet
 	Listener *app.TransactionListener
@@ -60,6 +72,10 @@ type Config struct {
 	Port     int
 
 	AddrChan chan [2]string
+}
+
+type NotFound struct {
+	ErrorText string
 }
 
 func NewServer(conf Config) (*Server, error) {
@@ -100,6 +116,8 @@ func NewServer(conf Config) (*Server, error) {
 	router.HandleFunc("/addfile", s.submitAddFile).Methods("POST")
 	router.HandleFunc("/validatecid", s.submitValidateCid).Methods("POST")
 	router.HandleFunc("/vote", s.submitVote).Methods("POST")
+	router.HandleFunc("/trending", s.renderTrending).Methods("GET")
+	router.HandleFunc("/search", s.renderSearch).Methods("GET")
 	router.HandleFunc("/", s.renderIndex).Methods("GET")
 	router.HandleFunc("/ws", s.handleWebsocket)
 	go s.ProcessSocketRequests()
@@ -107,7 +125,7 @@ func NewServer(conf Config) (*Server, error) {
 }
 
 func (s *Server) Start() {
-	go s.wallet.Start()
+	//go s.wallet.Start()
 	http.ListenAndServe(":"+strconv.Itoa(s.port), s.router)
 }
 
@@ -145,24 +163,94 @@ func (s *Server) renderIndex(w http.ResponseWriter, r *http.Request) {
 	templates.Lookup("footer").ExecuteTemplate(w, "footer", nil)
 }
 
+func (s *Server) renderSearch(w http.ResponseWriter, r *http.Request) {
+	templates, err := template.ParseFiles(path.Join("web", "templates", "results.html"), path.Join("web", "templates", "notfound.html"), path.Join("web", "templates", "header.html"), path.Join("web", "templates", "footer.html"))
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	resp := SearchResult{Page: 1}
+	templates.Lookup("header").ExecuteTemplate(w, "header", s.siteData)
+	templates.Lookup("results").ExecuteTemplate(w, "results", &resp)
+	templates.Lookup("notfound").ExecuteTemplate(w, "notfound", &NotFound{"No results found"})
+	templates.Lookup("footer").ExecuteTemplate(w, "footer", nil)
+}
+
+func (s *Server) renderTrending(w http.ResponseWriter, r *http.Request) {
+	category := r.URL.Query().Get("category")
+	pageStr := r.URL.Query().Get("page")
+	page := 1
+	if pageStr != "" {
+		p, err := strconv.Atoi(pageStr)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		page = p
+	}
+	templates, err := template.ParseFiles(path.Join("web", "templates", "trending.html"), path.Join("web", "templates", "notfound.html"), path.Join("web", "templates", "results.html"), path.Join("web", "templates", "header.html"), path.Join("web", "templates", "footer.html"))
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	var items []db.FileDescriptor
+	var count int
+	offset := 0
+	if page > 0 {
+		offset = page * 20
+	}
+	if category == "" {
+		s.db.Order("net desc").Find(&items).Limit(5).Count(&count).Offset(offset)
+	} else {
+		s.db.Where("category = ?", category).Order("net desc").Find(&items).Limit(5).Count(&count).Offset(offset)
+	}
+	var files []FormattedFile
+	removed := 0
+	for _, item := range items {
+		if item.Txid != "" && item.Description != "" {
+			if item.Category == "" {
+				item.Category = "N/A"
+			}
+			f := strconv.Itoa(int(item.Net))
+			if item.Net > 0 {
+				f = "+" + f
+			}
+			files = append(files, FormattedFile{item, f})
+			continue
+		}
+		removed++
+	}
+	resp := SearchResult{files, (float64(count)-float64(removed))/20 > float64(page), page, category}
+	templates.Lookup("header").ExecuteTemplate(w, "header", s.siteData)
+	templates.Lookup("trending").ExecuteTemplate(w, "trending", &resp)
+	//templates.Lookup("results").ExecuteTemplate(w, "results", &resp)
+	templates.Lookup("footer").ExecuteTemplate(w, "footer", nil)
+}
+
 func (s *Server) renderDetails(w http.ResponseWriter, r *http.Request) {
+	templates, err := template.ParseFiles(path.Join("web", "templates", "details.html"), path.Join("web", "templates", "notfound.html"), path.Join("web", "templates", "header.html"), path.Join("web", "templates", "footer.html"))
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	pth := strings.Split(r.URL.Path, "/")
 	if len(pth) < 3 {
-		// TODO: redirect to a fail whale
 		w.WriteHeader(http.StatusNotFound)
+		templates.Lookup("header").ExecuteTemplate(w, "header", s.siteData)
+		templates.Lookup("notfound").ExecuteTemplate(w, "notfound", &NotFound{"Invalid path"})
+		templates.Lookup("footer").ExecuteTemplate(w, "footer", nil)
 		return
 	}
 	txid := pth[2]
 	fd := new(db.FileDescriptor)
 	if s.db.Where("txid = ?", txid).First(fd).RecordNotFound() {
-		// TODO: redirect to a fail whale
 		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	templates, err := template.ParseFiles(path.Join("web", "templates", "details.html"), path.Join("web", "templates", "header.html"), path.Join("web", "templates", "footer.html"))
-	if err != nil {
-		log.Error(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		templates.Lookup("header").ExecuteTemplate(w, "header", s.siteData)
+		templates.Lookup("notfound").ExecuteTemplate(w, "notfound", &NotFound{"Txid not found"})
+		templates.Lookup("footer").ExecuteTemplate(w, "footer", nil)
 		return
 	}
 	type Comment struct {
