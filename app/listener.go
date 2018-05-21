@@ -71,9 +71,21 @@ func (l *TransactionListener) ListenBitcoinCash(tx wallet.TransactionCallback) {
 						Height:      uint32(tx.Height),
 						Cid:         parsedScript.(*AddFileScript).Cid.String(),
 					})
+					if tx.Height > 0 {
+						l.db.Index(chainHash.String(), db.FileDescriptor{
+							Category:    parsedScript.(*AddFileScript).Category,
+							Description: parsedScript.(*AddFileScript).Description,
+							Cid:         parsedScript.(*AddFileScript).Cid.String(),
+						})
+					}
 					log.Debugf("Received new file descriptor, tx: %s", chainHash.String())
 				} else {
 					l.db.Model(fd).Updates(&db.FileDescriptor{Height: uint32(tx.Height), Timestamp: ts})
+					l.db.Index(chainHash.String(), db.FileDescriptor{
+						Category:    parsedScript.(*AddFileScript).Category,
+						Description: parsedScript.(*AddFileScript).Description,
+						Cid:         parsedScript.(*AddFileScript).Cid.String(),
+					})
 					log.Debugf("Updated file descriptor with confirmation, tx: %s", chainHash.String())
 				}
 			} else if parsedScript.Command() == VoteCommand {

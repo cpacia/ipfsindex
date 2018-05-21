@@ -57,10 +57,11 @@ type FormattedFile struct {
 }
 
 type SearchResult struct {
-	Files []FormattedFile
-	More bool
-	Page int
+	Files    []FormattedFile
+	More     bool
+	Page     int
 	Category string
+	Query    string
 }
 
 type Config struct {
@@ -164,16 +165,46 @@ func (s *Server) renderIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) renderSearch(w http.ResponseWriter, r *http.Request) {
-	templates, err := template.ParseFiles(path.Join("web", "templates", "results.html"), path.Join("web", "templates", "notfound.html"), path.Join("web", "templates", "header.html"), path.Join("web", "templates", "footer.html"))
+	searchTerm := r.URL.Query().Get("query")
+	pageStr := r.URL.Query().Get("page")
+	page := 1
+	if pageStr != "" {
+		p, err := strconv.Atoi(pageStr)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		page = p
+	}
+	templates, err := template.ParseFiles(path.Join("web", "templates", "search.html"), path.Join("web", "templates", "header.html"), path.Join("web", "templates", "footer.html"))
 	if err != nil {
 		log.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	resp := SearchResult{Page: 1}
+	offset := 0
+	if page > 1 {
+		offset = (page-1) * 20
+	}
+	responses, _ := s.db.Query(searchTerm, 20, offset)
+	var files []FormattedFile
+	for _, r := range responses {
+		fd := new(db.FileDescriptor)
+		s.db.Where("txid = ?", r).First(fd)
+		if fd.Txid != "" && fd.Description != "" {
+			if fd.Category == "" {
+				fd.Category = "N/A"
+			}
+			f := strconv.Itoa(int(fd.Net))
+			if fd.Net > 0 {
+				f = "+" + f
+			}
+			files = append(files, FormattedFile{*fd, f})
+		}
+	}
+	resp := SearchResult{Page: page, Files: files, Query: searchTerm}
 	templates.Lookup("header").ExecuteTemplate(w, "header", s.siteData)
-	templates.Lookup("results").ExecuteTemplate(w, "results", &resp)
-	templates.Lookup("notfound").ExecuteTemplate(w, "notfound", &NotFound{"No results found"})
+	templates.Lookup("search").ExecuteTemplate(w, "search", &resp)
 	templates.Lookup("footer").ExecuteTemplate(w, "footer", nil)
 }
 
@@ -189,7 +220,7 @@ func (s *Server) renderTrending(w http.ResponseWriter, r *http.Request) {
 		}
 		page = p
 	}
-	templates, err := template.ParseFiles(path.Join("web", "templates", "trending.html"), path.Join("web", "templates", "notfound.html"), path.Join("web", "templates", "results.html"), path.Join("web", "templates", "header.html"), path.Join("web", "templates", "footer.html"))
+	templates, err := template.ParseFiles(path.Join("web", "templates", "trending.html"), path.Join("web", "templates", "header.html"), path.Join("web", "templates", "footer.html"))
 	if err != nil {
 		log.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -198,8 +229,8 @@ func (s *Server) renderTrending(w http.ResponseWriter, r *http.Request) {
 	var items []db.FileDescriptor
 	var count int
 	offset := 0
-	if page > 0 {
-		offset = page * 20
+	if page > 1 {
+		offset = (page-1) * 20
 	}
 	if category == "" {
 		s.db.Order("net desc").Find(&items).Limit(5).Count(&count).Offset(offset)
@@ -222,10 +253,9 @@ func (s *Server) renderTrending(w http.ResponseWriter, r *http.Request) {
 		}
 		removed++
 	}
-	resp := SearchResult{files, (float64(count)-float64(removed))/20 > float64(page), page, category}
+	resp := SearchResult{files, (float64(count)-float64(removed))/20 > float64(page), page, category, ""}
 	templates.Lookup("header").ExecuteTemplate(w, "header", s.siteData)
 	templates.Lookup("trending").ExecuteTemplate(w, "trending", &resp)
-	//templates.Lookup("results").ExecuteTemplate(w, "results", &resp)
 	templates.Lookup("footer").ExecuteTemplate(w, "footer", nil)
 }
 
@@ -284,7 +314,7 @@ func (s *Server) renderDetails(w http.ResponseWriter, r *http.Request) {
 	var formattedComments []Comment
 	for _, c := range comments {
 		ts := TimeElapsed(c.Timestamp, false)
-		if c.Height <=0 {
+		if c.Height <= 0 {
 			ts = "unconfirmed"
 		}
 		formattedComments = append(formattedComments, Comment{

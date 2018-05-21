@@ -1,6 +1,7 @@
 package db
 
 import (
+	"github.com/blevesearch/bleve"
 	"github.com/jinzhu/gorm"
 	"path"
 	"time"
@@ -31,6 +32,7 @@ type Vote struct {
 
 type Database struct {
 	*gorm.DB
+	search bleve.Index
 }
 
 func NewDatabase(repoPath string) (*Database, error) {
@@ -39,7 +41,40 @@ func NewDatabase(repoPath string) (*Database, error) {
 		return nil, err
 	}
 	db.AutoMigrate(&FileDescriptor{}, &Vote{})
-	return &Database{db}, nil
+
+	index, err := bleve.Open(path.Join(repoPath, "index.bleve"))
+	if err == bleve.ErrorIndexPathDoesNotExist {
+		mapping := bleve.NewIndexMapping()
+		index, err = bleve.New(path.Join(repoPath, "index.bleve"), mapping)
+		if err != nil {
+			return nil, err
+		}
+	}
+	database := &Database{
+		DB:     db,
+		search: index,
+	}
+	return database, nil
+}
+
+func (db *Database) Index(txid string, fd FileDescriptor) {
+	db.search.Index(txid, fd)
+}
+
+func (db *Database) Query(searchTerm string, limit int, offset int) ([]string, error) {
+	var ids []string
+	query := bleve.NewMatchQuery(searchTerm)
+	search := bleve.NewSearchRequest(query)
+	search.Size = limit
+	search.From = offset
+	searchResults, err := db.search.Search(search)
+	if err != nil {
+		return ids, err
+	}
+	for _, r := range searchResults.Hits {
+		ids = append(ids, r.ID)
+	}
+	return ids, nil
 }
 
 func (db *Database) Close() {

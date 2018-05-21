@@ -137,3 +137,7 @@ function maybeEnableUploadButton() {
         $('#uploadButton').prop('disabled', true);
     }
 }
+
+function goto(txid) {
+    window.location = "/file/" + txid;
+}

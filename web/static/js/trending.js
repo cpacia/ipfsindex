@@ -35,7 +35,3 @@ $(function(){
         window.location = "/trending?category=" + event.target.name;
     });
 });
-
-function goto(txid) {
-    window.location = "/file/" + txid;
-}
