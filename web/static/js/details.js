@@ -98,7 +98,7 @@ function clearVoteModal() {
     $("#voteDown").addClass("thumb");
     qrv.clear();
     if (success) {
-        window.location = "/file/" + txid;
+        location.reload();
     }
 }
 

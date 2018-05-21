@@ -83,5 +83,103 @@
             </div>
         </div>
     </div>
+    <!-- Modal -->
+    <div class="modal fade" id="aboutModal" tabindex="-1" role="dialog" aria-labelledby="aboutModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="aboutModalTitle">About</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body p-3">
+                    <a href="https://ipfs.io">IPFS</a> is a peer-to-peer hypermedia protocol that allows users to seed and download files without the use of servers or trackers.
+                    All you need to know to download a file is its hash (for example: QmfJZH5kmnsjGP5nzfbP1dJXLw3ut8JuuXoawqP1WeYGMF).<br><br>
+
+                    You can download IPFS from <a href="https://ipfs.io/docs/install/">here</a>.<br><br>
+                    Alternatively, you can download files from the IPFS web gateway (linked to from the files page) however, the gateway reserves the right to censor files which contain
+                    illicit content or violate copyright claims.<br><br>
+
+                    This website provides a searchable index for files stored on IPFS. The hash of each file, along with some metadata, is permanently recorded in the Bitcoin Cash blockchain
+                    in such a way that the entire search index may be downloaded and rebuilt by anyone running compatible software.<br><br>
+
+                    <h5>Protocol</h5>
+                    <h6>Add File:</h6>
+                    <code>OP_RETURN &lt;flag&gt; &lt;cid&gt; &lt;description&gt; &lt;category&gt;</code><br><br>
+                    Each data element is in its own <code>pushdata</code>
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th scope="col">Element</th>
+                            <th scope="col">Tag</th>
+                            <th scope="col">Data</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>flag</td>
+                            <td>0x9F</td>
+                            <td>0x01</td>
+                        </tr>
+                        <tr>
+                            <td>cid</td>
+                            <td>0x00</td>
+                            <td>IPFS Content ID</td>
+                        </tr>
+                        <tr>
+                            <td>description</td>
+                            <td>0x01</td>
+                            <td>UTF-8 string</td>
+                        </tr>
+                        <tr>
+                            <td>category</td>
+                            <td>0x05</td>
+                            <td>UTF-8 string</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <br>
+                    <h6>Vote:</h6>
+                    <code>OP_RETURN &lt;flag&gt; &lt;txid&gt; &lt;vote&gt; &lt;comment&gt;</code><br><br>
+                    Each data element is in its own <code>pushdata</code>
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th scope="col">Element</th>
+                            <th scope="col">Tag</th>
+                            <th scope="col">Data</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>flag</td>
+                            <td>0x9F</td>
+                            <td>0x02</td>
+                        </tr>
+                        <tr>
+                            <td>txid</td>
+                            <td>0x02</td>
+                            <td>32 byte BCH txid</td>
+                        </tr>
+                        <tr>
+                            <td>vote</td>
+                            <td>0x03</td>
+                            <td>0x00 for false, 0x01 for true</td>
+                        </tr>
+                        <tr>
+                            <td>comment</td>
+                            <td>0x04</td>
+                            <td>UTF-8 string</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 {{end}}
 

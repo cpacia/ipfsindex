@@ -9,6 +9,11 @@ $(function(){
         $('#uploadModal').modal();
     });
 
+    $("#navAbout").click(function( event ) {
+        event.preventDefault();
+        $('#aboutModal').modal();
+    });
+
     $('.dropdown-toggle').dropdown();
     $('.dropdown-item').click(function(event){
         $('#dropdownMenuButton').html(event.target.name);
