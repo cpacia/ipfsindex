@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"gx/ipfs/QmNp85zy9RLrQ5oQD4hPyS39ezrrXpcaa7R4Y9kxdWQLLQ/go-cid"
+	"github.com/ipfs/go-cid"
 	"testing"
 )
 
