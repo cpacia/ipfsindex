@@ -1,6 +1,4 @@
 $(function(){
-    $("#navSearch").removeClass("active");
-    $("#navTrending").addClass("active");
     if (!more) {
         $('#nextPage').addClass("disabled");
     }
