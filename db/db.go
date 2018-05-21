@@ -5,6 +5,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"path"
 	"time"
+	"os"
 )
 
 type FileDescriptor struct {
@@ -36,6 +37,7 @@ type Database struct {
 }
 
 func NewDatabase(repoPath string) (*Database, error) {
+	os.Mkdir(repoPath, os.ModePerm)
 	db, err := gorm.Open("sqlite3", path.Join(repoPath, "the_index.db"))
 	if err != nil {
 		return nil, err
