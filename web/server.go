@@ -126,7 +126,7 @@ func NewServer(conf Config) (*Server, error) {
 }
 
 func (s *Server) Start() {
-	//go s.wallet.Start()
+	go s.wallet.Start()
 	http.ListenAndServe(":"+strconv.Itoa(s.port), s.router)
 }
 

@@ -137,7 +137,7 @@ func TestVoteScript_Serialize(t *testing.T) {
 		Upvote:  true,
 		Comment: "goodbye world",
 	}
-	check, err := hex.DecodeString("6a029F02200934aaa9e475375cea77c01853d6c411e6c4446c81da76797f696fd70e143cc3510D676f6f6462796520776f726c64")
+	check, err := hex.DecodeString("6a029F0221020934aaa9e475375cea77c01853d6c411e6c4446c81da76797f696fd70e143cc30203510E04676f6f6462796520776f726c64")
 	if err != nil {
 		t.Error(err)
 	}
@@ -159,7 +159,7 @@ func TestAddFileScript_Serialize(t *testing.T) {
 		Cid:         *id,
 		Description: "hello world",
 	}
-	check, err := hex.DecodeString("6a029F012212200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b2390b68656c6c6f20776f726c64")
+	check, err := hex.DecodeString("6a029F01230012200709a33d6f07812bc1d7cbddbbc2f95f4444f5d0cf5deb05a441c4b21fc6b2390c0168656c6c6f20776f726c64")
 	if err != nil {
 		t.Error(err)
 	}
@@ -170,4 +170,16 @@ func TestAddFileScript_Serialize(t *testing.T) {
 	if !bytes.Equal(ser, check) {
 		t.Error("failed to serialize properly")
 	}
+}
+
+func Test(t *testing.T) {
+	h := "6a029f0123001220627a32cf4b279ccf1c6d636485ba7483870eba69fa554cbfafc906f4c463b2c24c5a01536e6f77666c616b6520746f204176616c616e6368653a2041204e6f76656c204d657461737461626c6520436f6e73656e7375732050726f746f636f6c2046616d696c7920666f722043727970746f63757272656e63696573100541636164656d696320506170657273"
+
+	hd, _ := hex.DecodeString(h)
+
+	_, err := ParseScript(hd)
+	if err != nil {
+		t.Error(err)
+	}
+
 }

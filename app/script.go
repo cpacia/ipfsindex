@@ -239,13 +239,24 @@ func parsePushData(script *bytes.Buffer) (ret []byte, err error) {
 	if err != nil {
 		return ret, err
 	}
-	if l < 1 || l > 74 {
+	length := int(l)
+	if l < 1 {
 		return nil, ErrInvalidPushData
 	}
-	if script.Len() < 1 || script.Len() < int(l) {
+	if l == 0x4c {
+		l, err := script.ReadByte()
+		if err != nil {
+			return ret, err
+		}
+		length = int(l)
+	} else if l > 0x4c {
+		return nil, ErrInvalidPushData
+	}
+
+	if script.Len() < 1 || script.Len() < length {
 		return ret, ErrInvalidPushData
 	}
-	return script.Next(int(l)), nil
+	return script.Next(length), nil
 }
 
 func evalByte(buf *bytes.Buffer, check byte) (bool, error) {

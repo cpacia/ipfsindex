@@ -1,5 +1,6 @@
 var qrv;
 var upvote = false;
+var success = false;
 
 $(function(){
     qrv = new QRCode(document.getElementById("voteQrcode"), "");
@@ -69,6 +70,7 @@ $(function(){
                     var audio = new Audio('/static/audio/coin-sound.mp3');
                     audio.play();
                     socket.close();
+                    success = true;
                 };
             },
             error: function(result) {
@@ -95,6 +97,9 @@ function clearVoteModal() {
     $("#voteUp").addClass("thumb");
     $("#voteDown").addClass("thumb");
     qrv.clear();
+    if (success) {
+        window.location = "/file/" + txid;
+    }
 }
 
 function maybeEnableUploadButton() {
